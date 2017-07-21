@@ -46,17 +46,9 @@ fn get(stream: &mut TcpStream, path: &str) -> io::Result<()> {
 
     stream.write(b"\r\n")?;
 
-    // TODO: Investigate why some files need to be read as String
-    // while other need to be read as &str
-    if path.ends_with(".svg") || path.ends_with(".js")  {
-        let mut served_page = String::new();
-        buf_reader.read_to_string(&mut served_page)?;
-        stream.write(served_page.as_bytes())?;
-    } else {
-        let mut served_page = [0; 1024*500];
-        buf_reader.read(&mut served_page)?;
-        stream.write(&served_page)?;
-    }
+    let mut served_page = Vec::new();
+    buf_reader.read_to_end(&mut served_page)?;
+    stream.write(&served_page)?;
 
     Ok(())
 }
