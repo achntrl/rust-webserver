@@ -7,7 +7,10 @@ use std::io;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
+use std::path::{Path, PathBuf};
 use std::thread;
+
+static WORKING_DIRECTORY: &'static str = "/Users/alexandre/.dotfiles/Frontpage";
 
 fn handle_client(stream: &mut TcpStream) -> io::Result<()> {
     let mut request = [0; 1024*2];
@@ -24,24 +27,44 @@ fn handle_client(stream: &mut TcpStream) -> io::Result<()> {
      Ok(())
 }
 
+fn sanitize(path: &str) -> PathBuf {
+    let working_directory = Path::new(WORKING_DIRECTORY);
 
-fn get(stream: &mut TcpStream, path: &str) -> io::Result<()> {
-    let mut full_path: String = "/Users/alexandre/.dotfiles/Frontpage".to_string();
-    full_path = if path == "/" { full_path + "/index.html" } else { full_path + path };
+    match PathBuf::from(WORKING_DIRECTORY.to_string() + path).canonicalize() {
+        Ok(full_path) => {
+            if full_path.starts_with(working_directory) {
+                full_path
+            } else {
+                debug!("You cannot access directory above {}", WORKING_DIRECTORY);
+                info!("404: file not found");
+                working_directory.to_path_buf()
+            }
+        }
+        Err(_) => {
+            info!("404: file not found");
+            working_directory.to_path_buf()}
+    }
+}
+
+fn get(stream: &mut TcpStream, relative_path: &str) -> io::Result<()> {
+    let mut full_path = sanitize(&relative_path);
+    if relative_path == "/" || full_path.to_str().unwrap() == WORKING_DIRECTORY {
+        full_path.push("index.html")
+    }
     let file = File::open(full_path)?;
     let mut buf_reader = BufReader::new(file);
 
     stream.write(b"HTTP/1.1 200 OK\r\n")?;
-    if path.ends_with(".svg") {
+    if relative_path.ends_with(".svg") {
         stream.write(b"Content-type:image/svg+xml;charset=UTF-8\r\n")?;
     }
-    if path.ends_with(".png") {
+    if relative_path.ends_with(".png") {
         stream.write(b"Content-type:image/png;charset=UTF-8\r\n")?;
     }
-    if path.ends_with(".js") {
+    if relative_path.ends_with(".js") {
         stream.write(b"Content-type:application/javascript;charset=UTF-8\r\n")?;
     }
-    if path.ends_with(".ico") {
+    if relative_path.ends_with(".ico") {
         stream.write(b"Content-type:image/ico;charset=UTF-8\r\n")?;
     }
 
