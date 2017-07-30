@@ -33,21 +33,13 @@ fn handle_client(stream: &mut TcpStream) -> io::Result<()> {
 
 fn sanitize(path: &str) -> PathBuf {
     let working_directory = Path::new(WORKING_DIRECTORY);
+    let full_path = PathBuf::from(WORKING_DIRECTORY.to_string() + path)
+        .canonicalize().unwrap_or(working_directory.to_path_buf());
 
-    match PathBuf::from(WORKING_DIRECTORY.to_string() + path).canonicalize() {
-        Ok(full_path) => {
             if full_path.starts_with(working_directory) {
                 full_path
             } else {
-                debug!("You cannot access directory above {}", WORKING_DIRECTORY);
-                info!("404: file not found");
-                working_directory.to_path_buf()
-            }
-        }
-        Err(_) => {
-            info!("404: file not found");
             working_directory.to_path_buf()
-        }
     }
 }
 
