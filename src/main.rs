@@ -14,15 +14,16 @@ fn handle_client(stream: &mut TcpStream) -> io::Result<()> {
     stream.read(&mut request)?;
     let request_str = String::from_utf8(request.to_vec()).unwrap();
     let (method, path) = read_request(&request_str);
-    println!("{:?} {} ", method, path);
+    info!("{:?} {} ", method, path);
 
     match method {
         RequestMethod::GET => { get(stream, &path)?; }
-        RequestMethod::POST => { println!("POST: Not implemented yet");}
+        RequestMethod::POST => { error!("POST: Not implemented yet");}
     }
 
      Ok(())
 }
+
 
 fn get(stream: &mut TcpStream, path: &str) -> io::Result<()> {
     let mut full_path: String = "/Users/alexandre/.dotfiles/Frontpage".to_string();
@@ -73,19 +74,18 @@ fn read_request(request_str: &String) -> (RequestMethod, &str) {
 
 fn main() {
     env_logger::init().unwrap();
-
+    info!("starting");
     let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => { thread::spawn(|| {
                 let mut stream = stream;
                 match handle_client(&mut stream) {
-                    Ok(_) => { info!("Connection received form {}", stream.peer_addr().unwrap()); }
+                    Ok(_) => { debug!("Connection received form {}", stream.peer_addr().unwrap()); }
                     Err(e) => { error!("An error occured: {}", e); }
                 }
             });}
-            Err(_) => { println!("Error receiving !"); }
+            Err(_) => { error!("Error receiving !"); }
         }
     }
-    println!("Hello, world!");
 }
