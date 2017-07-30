@@ -13,18 +13,22 @@ use std::thread;
 static WORKING_DIRECTORY: &'static str = "/Users/alexandre/.dotfiles/Frontpage";
 
 fn handle_client(stream: &mut TcpStream) -> io::Result<()> {
-    let mut request = [0; 1024*2];
+    let mut request = [0; 1024 * 2];
     stream.read(&mut request)?;
     let request_str = String::from_utf8(request.to_vec()).unwrap();
     let (method, path) = read_request(&request_str);
     info!("{:?} {} ", method, path);
 
     match method {
-        RequestMethod::GET => { get(stream, &path)?; }
-        RequestMethod::POST => { error!("POST: Not implemented yet");}
+        RequestMethod::GET => {
+            get(stream, &path)?;
+        }
+        RequestMethod::POST => {
+            error!("POST: Not implemented yet");
+        }
     }
 
-     Ok(())
+    Ok(())
 }
 
 fn sanitize(path: &str) -> PathBuf {
@@ -42,7 +46,8 @@ fn sanitize(path: &str) -> PathBuf {
         }
         Err(_) => {
             info!("404: file not found");
-            working_directory.to_path_buf()}
+            working_directory.to_path_buf()
+        }
     }
 }
 
@@ -56,16 +61,20 @@ fn get(stream: &mut TcpStream, relative_path: &str) -> io::Result<()> {
 
     stream.write(b"HTTP/1.1 200 OK\r\n")?;
     if relative_path.ends_with(".svg") {
-        stream.write(b"Content-type:image/svg+xml;charset=UTF-8\r\n")?;
+        stream
+            .write(b"Content-type:image/svg+xml;charset=UTF-8\r\n")?;
     }
     if relative_path.ends_with(".png") {
-        stream.write(b"Content-type:image/png;charset=UTF-8\r\n")?;
+        stream
+            .write(b"Content-type:image/png;charset=UTF-8\r\n")?;
     }
     if relative_path.ends_with(".js") {
-        stream.write(b"Content-type:application/javascript;charset=UTF-8\r\n")?;
+        stream
+            .write(b"Content-type:application/javascript;charset=UTF-8\r\n")?;
     }
     if relative_path.ends_with(".ico") {
-        stream.write(b"Content-type:image/ico;charset=UTF-8\r\n")?;
+        stream
+            .write(b"Content-type:image/ico;charset=UTF-8\r\n")?;
     }
 
     stream.write(b"\r\n")?;
@@ -86,9 +95,11 @@ fn read_request(request_str: &String) -> (RequestMethod, &str) {
     let request: Vec<&str> = request_str.split("\n").collect();
     let request_args: Vec<&str> = request[0].split(" ").collect();
     let request_method = match request_args[0] {
-        "GET" => { RequestMethod::GET },
-        "POST" => { RequestMethod::POST },
-        _ => {panic!("Error: couldn't parse request type");}
+        "GET" => RequestMethod::GET,
+        "POST" => RequestMethod::POST,
+        _ => {
+            panic!("Error: couldn't parse request type");
+        }
     };
     let request_path = request_args[1];
     (request_method, &request_path)
@@ -101,14 +112,22 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => { thread::spawn(|| {
-                let mut stream = stream;
-                match handle_client(&mut stream) {
-                    Ok(_) => { debug!("Connection received form {}", stream.peer_addr().unwrap()); }
-                    Err(e) => { error!("An error occured: {}", e); }
-                }
-            });}
-            Err(_) => { error!("Error receiving !"); }
+            Ok(stream) => {
+                thread::spawn(|| {
+                    let mut stream = stream;
+                    match handle_client(&mut stream) {
+                        Ok(_) => {
+                            debug!("Connection received form {}", stream.peer_addr().unwrap());
+                        }
+                        Err(e) => {
+                            error!("An error occured: {}", e);
+                        }
+                    }
+                });
+            }
+            Err(_) => {
+                error!("Error receiving !");
+            }
         }
     }
 }
